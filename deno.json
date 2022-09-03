@@ -1,7 +1,7 @@
 {
   "importMap": "imports.json",
   "tasks": {
-    "install": "deno install --allow-read --allow-run -n ndpkg mod.ts",
+    "install": "deno install --allow-read --allow-run --unstable -n ndpkg mod.ts",
     "review": "deno lint && deno fmt --check",
     "format": "deno fmt"
   },

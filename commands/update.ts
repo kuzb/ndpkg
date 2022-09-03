@@ -1,4 +1,4 @@
-import { Command } from 'cliffy';
+import { Checkbox, Command } from 'cliffy';
 
 import ProcessUtil from '/utils/ProcessUtil.ts';
 import NpmUtil from '/utils/NpmUtil.ts';
@@ -6,10 +6,27 @@ import NpmUtil from '/utils/NpmUtil.ts';
 interface Options {
   prod?: boolean;
   dev?: boolean;
+  select?: boolean;
 }
 
-const update = async ({ prod, dev }: Options) => {
+const update = async ({ prod, dev, select }: Options) => {
   let { devDependencies, dependencies } = await NpmUtil.getDependencies();
+
+  if (select) {
+    if (prod && dependencies.length > 0) {
+      dependencies = await Checkbox.prompt({
+        message: 'Select production packages to update',
+        options: dependencies,
+      });
+    }
+
+    if (dev && devDependencies.length > 0) {
+      devDependencies = await Checkbox.prompt({
+        message: 'Select development packages to update',
+        options: devDependencies,
+      });
+    }
+  }
 
   devDependencies = devDependencies.map((dependency) => `${dependency}@latest`);
   dependencies = dependencies.map((dependency) => `${dependency}@latest`);
@@ -36,7 +53,8 @@ const update = async ({ prod, dev }: Options) => {
 };
 
 export const updateCommand = new Command()
-  .description('Updates package dependencies to latest release')
-  .option('-p, --prod', 'Updates production dependencies')
-  .option('-d, --dev', 'Updates development dependencies')
+  .description('Update dependencies to latest version')
+  .option('-p, --prod', 'Update production dependencies')
+  .option('-d, --dev', 'Update development dependencies')
+  .option('-s, --select', 'Select which dependencies to update')
   .action(update);
