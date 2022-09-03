@@ -1,46 +1,38 @@
-import * as path from 'std/path';
-import { green, red } from 'std/fmt/colors';
-
-import { wait } from 'wait';
 import { Command } from 'cliffy';
 
-import FileUtil from '/utils/FileUtil.ts';
+import ProcessUtil from '/utils/ProcessUtil.ts';
+import NpmUtil from '/utils/NpmUtil.ts';
 
 interface Options {
   prod?: boolean;
   dev?: boolean;
 }
 
-interface Env {
-  type: string;
-  text: string;
-}
-
-const updatePackages = async (env: Env) => {
-  const root = await FileUtil.findRoot();
-  const packagejson = await Deno.readFile(path.join(root, 'package.json'));
-  const text = new TextDecoder().decode(packagejson);
-  const parsed = JSON.parse(text);
-
-  const dependencies = Object.keys(parsed[env.type]).map((key) => key + '@latest');
-
-  const spinner = wait(green(`Updating ${env.text} dependencies`)).start();
-
-  const process = Deno.run({
-    cmd: ['npm', 'install', '--save', ...dependencies],
-    stdout: 'null',
-    stderr: 'null',
-  });
-
-  const { code } = await process.status();
-
-  if (code === 0) spinner.succeed();
-  else spinner.fail(red(`Failed when updating ${env.text} dependencies`));
-};
-
 const update = async ({ prod, dev }: Options) => {
-  if (prod) await updatePackages({ type: 'dependencies', text: 'production' });
-  if (dev) await updatePackages({ type: 'devDependencies', text: 'development' });
+  let { devDependencies, dependencies } = await NpmUtil.getDependencies();
+
+  devDependencies = devDependencies.map((dependency) => `${dependency}@latest`);
+  dependencies = dependencies.map((dependency) => `${dependency}@latest`);
+
+  if (prod && dependencies.length > 0) {
+    await ProcessUtil.run(async () => {
+      await NpmUtil.installPackages(false, ...dependencies);
+    }, {
+      startText: 'Updating production dependencies',
+      successText: 'Updated production dependencies',
+      failText: 'Failed when updating production dependencies',
+    });
+  }
+
+  if (dev && devDependencies.length > 0) {
+    await ProcessUtil.run(async () => {
+      await NpmUtil.installPackages(true, ...devDependencies);
+    }, {
+      startText: `Updating development dependencies`,
+      successText: `Updated development dependencies`,
+      failText: `Failed when updating development dependencies`,
+    });
+  }
 };
 
 export const updateCommand = new Command()
