@@ -1,6 +1,6 @@
 # ndpkg
 
-Tiny wrapper for npm
+Companion CLI for Node
 
 - Installation
 
