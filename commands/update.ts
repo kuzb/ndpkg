@@ -1,7 +1,7 @@
-import { Checkbox, Command } from 'cliffy';
+import { Checkbox, Command, Select } from 'cliffy';
 
 import ProcessUtil from '/utils/ProcessUtil.ts';
-import NpmUtil from '/utils/NpmUtil.ts';
+import PackageManager from '/libs/PackageManager.ts';
 
 interface ProjectUpdateOptions {
   prod?: boolean;
@@ -14,13 +14,19 @@ interface GlobalUpdateOptions {
 }
 
 const update = async ({ prod, dev, select }: ProjectUpdateOptions) => {
-  let { devDependencies, dependencies } = await NpmUtil.getProjectDependencies();
+  const manager = new PackageManager();
+
+  let { devDependencies, dependencies } = await manager.getProjectDependencies();
 
   if (select) {
     if (prod && dependencies.length > 0) {
       dependencies = await Checkbox.prompt({
         message: 'Select production packages to update',
         options: dependencies,
+        keys: {
+          previous: ['k', 'up'],
+          next: ['j', 'down'],
+        },
       });
     }
 
@@ -28,6 +34,10 @@ const update = async ({ prod, dev, select }: ProjectUpdateOptions) => {
       devDependencies = await Checkbox.prompt({
         message: 'Select development packages to update',
         options: devDependencies,
+        keys: {
+          previous: ['k', 'up'],
+          next: ['j', 'down'],
+        },
       });
     }
   }
@@ -36,9 +46,7 @@ const update = async ({ prod, dev, select }: ProjectUpdateOptions) => {
   dependencies = dependencies.map((dependency) => `${dependency}@latest`);
 
   if (prod && dependencies.length > 0) {
-    await ProcessUtil.run(async () => {
-      await NpmUtil.installPackages(dependencies, { prod: true });
-    }, {
+    await ProcessUtil.run(async () => await manager.install(dependencies, { prod: true }), {
       startText: 'Updating production dependencies',
       successText: 'Updated production dependencies',
       failText: 'Failed when updating production dependencies',
@@ -46,9 +54,7 @@ const update = async ({ prod, dev, select }: ProjectUpdateOptions) => {
   }
 
   if (dev && devDependencies.length > 0) {
-    await ProcessUtil.run(async () => {
-      await NpmUtil.installPackages(devDependencies, { dev: true });
-    }, {
+    await ProcessUtil.run(async () => await manager.install(devDependencies, { dev: true }), {
       startText: `Updating development dependencies`,
       successText: `Updated development dependencies`,
       failText: `Failed when updating development dependencies`,
@@ -57,7 +63,18 @@ const update = async ({ prod, dev, select }: ProjectUpdateOptions) => {
 };
 
 const updateGlobal = async ({ select }: GlobalUpdateOptions) => {
-  const { dependencies } = await NpmUtil.getGlobalDependencies();
+  const packager = await Select.prompt({
+    message: 'Select package manager',
+    options: [{ name: 'npm', value: 'npm' }, { name: 'yarn', value: 'yarn' }],
+    keys: {
+      next: ['j', 'down'],
+      previous: ['k', 'up'],
+    },
+  }) as 'npm' | 'yarn';
+
+  const manager = new PackageManager(packager);
+
+  const { dependencies } = await manager.listGlobal();
 
   let packages = dependencies;
 
@@ -65,14 +82,16 @@ const updateGlobal = async ({ select }: GlobalUpdateOptions) => {
     packages = await Checkbox.prompt({
       message: 'Select global packages to update',
       options: packages,
+      keys: {
+        next: ['j', 'down'],
+        previous: ['k', 'up'],
+      },
     });
   }
 
   packages = packages.map((dependency) => `${dependency}@latest`);
 
-  await ProcessUtil.run(async () => {
-    await NpmUtil.installPackages(packages, { global: true });
-  }, {
+  await ProcessUtil.run(async () => await manager.install(packages, { global: true }), {
     startText: 'Updating global dependencies',
     successText: 'Updated global dependencies',
     failText: 'Failed when updating global dependencies',

@@ -1,4 +1,5 @@
 import * as path from 'std/path';
+import { isAbsolute, join } from "std/path";
 
 class FileUtil {
   static async findRoot(startPath = Deno.cwd()): Promise<string> {
@@ -19,6 +20,18 @@ class FileUtil {
     }
 
     return FileUtil.findRoot(path.dirname(startPath));
+  }
+
+  static existsSync(base: string): boolean {
+    const path = isAbsolute(base) ? base : join(Deno.cwd(), base);
+
+    try {
+      Deno.statSync(path);
+
+      return true;
+    } catch {
+      return false;
+    }
   }
 }
 
