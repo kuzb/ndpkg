@@ -1,7 +1,7 @@
 import { Checkbox, Command, Select } from 'cliffy';
 
 import ProcessUtil from '/utils/ProcessUtil.ts';
-import PackageManager from '/libs/PackageManager.ts';
+import ManagerFactory from '/libs/ManagerFactory.ts';
 
 interface ProjectUpdateOptions {
   prod?: boolean;
@@ -14,7 +14,7 @@ interface GlobalUpdateOptions {
 }
 
 const update = async ({ prod, dev, select }: ProjectUpdateOptions) => {
-  const manager = new PackageManager();
+  const manager = ManagerFactory.build();
 
   let { devDependencies, dependencies } = await manager.getProjectDependencies();
 
@@ -72,7 +72,7 @@ const updateGlobal = async ({ select }: GlobalUpdateOptions) => {
     },
   }) as 'npm' | 'yarn';
 
-  const manager = new PackageManager(packager);
+  const manager = ManagerFactory.build(packager);
 
   const { dependencies } = await manager.listGlobal();
 

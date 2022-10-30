@@ -1,12 +1,12 @@
+import Manager, { InstallOptions } from '/libs/Manager.ts';
 import { Result } from '/utils/ProcessUtil.ts';
-import { InstallOptions, Manager } from '/types/package.ts';
 
 export interface PackageJson {
   dependencies?: Record<string, string>;
   devDependencies?: Record<string, string>;
 }
 
-class Npm implements Manager {
+class Npm extends Manager {
   async install(packages: string[], options: Partial<InstallOptions> = {}) {
     let cmd: string[];
 

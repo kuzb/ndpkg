@@ -1,5 +1,5 @@
+import Manager, { InstallOptions } from '/libs/Manager.ts';
 import { Result } from '/utils/ProcessUtil.ts';
-import { InstallOptions, Manager } from '/types/package.ts';
 
 interface PackageListJson {
   type: string;
@@ -9,7 +9,7 @@ interface PackageListJson {
   };
 }
 
-class Yarn implements Manager {
+class Yarn extends Manager {
   async install(packages: string[], options: Partial<InstallOptions> = {}) {
     let cmd: string[];
 
